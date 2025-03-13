@@ -2,17 +2,19 @@ package jobs
 
 import (
 	"fmt"
+	"ha-backuper/persistence"
 	"io"
 	"log"
 	"os"
 	"path/filepath"
+	"time"
 )
 
-func (j *JobWorker) Backup(backupPath string) error {
+func (j *JobWorker) Backup(backupPath string) (*persistence.BackupEntity, error) {
 	file, err := os.Open(backupPath)
 	if err != nil {
 		log.Fatalf("Error opening file: %v", err)
-		return err
+		return nil, err
 	}
 	defer file.Close()
 
@@ -36,5 +38,12 @@ func (j *JobWorker) Backup(backupPath string) error {
 	}
 
 	fmt.Printf("Successfully backed up file %s to bucket %s in folder %s\n", backupPath, bucketName, folderName)
-	return nil
+	result := &persistence.BackupEntity{
+		BucketName:  bucketName,
+		StoragePath: objectName,
+		UploadedAt:  time.Now(),
+		Location:    j.Config.LocationIdentifier,
+		IsDeleted:   false,
+	}
+	return result, nil
 }

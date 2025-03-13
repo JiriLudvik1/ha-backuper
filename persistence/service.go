@@ -30,6 +30,29 @@ func NewFirestoreService(ctx context.Context, config *config.BackuperConfig) (*F
 	return service, nil
 }
 
+func (s *FirestoreService) BackupCreatedInsert(result *BackupEntity) error {
+	err := s.writeDocument(s.config.FirestoreCollection, nil, result)
+	if err != nil {
+		return err
+	}
+
+	log.Printf("BackupEntity created: %v", result)
+	return nil
+}
+
+func (s *FirestoreService) writeDocument(collectionName string, documentId *string, data interface{}) error {
+	var docRef *firestore.DocumentRef
+
+	if documentId == nil {
+		docRef = s.client.Collection(collectionName).NewDoc()
+	} else {
+		docRef = s.client.Collection(collectionName).Doc(*documentId)
+	}
+
+	_, err := docRef.Set(s.ctx, data)
+	return err
+}
+
 func (s *FirestoreService) closeOnContext() {
 	<-s.ctx.Done()
 

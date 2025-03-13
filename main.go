@@ -25,7 +25,11 @@ func main() {
 	}
 
 	worker := jobs.NewJobWorker(ctx, configuration)
-	err = worker.Backup(backupPath)
+	result, err := worker.Backup(backupPath)
+	if err != nil {
+		panic(err)
+	}
+	err = worker.FirestoreService.BackupCreatedInsert(result)
 	if err != nil {
 		panic(err)
 	}
