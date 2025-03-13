@@ -7,14 +7,14 @@ import (
 )
 
 type BackuperConfig struct {
-	HomeAssistantPath  string
-	ServiceAccountPath string
-	GcloudProject      string
-	BucketName         string
-	LocationIdentifier string
-	FirebaseCollection string
-	WebhookEnabled     bool
-	WebhookUrl         *string
+	HomeAssistantPath   string
+	ServiceAccountPath  string
+	GcloudProject       string
+	BucketName          string
+	LocationIdentifier  string
+	FirestoreCollection string
+	WebhookEnabled      bool
+	WebhookUrl          *string
 }
 
 const configFileName = "config.json"
@@ -36,7 +36,7 @@ func LoadConfig() (*BackuperConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	configFile.Close()
+	defer configFile.Close()
 
 	err = validateConfig(config)
 	if err != nil {
@@ -63,7 +63,7 @@ func validateConfig(config *BackuperConfig) error {
 	if config.LocationIdentifier == "" {
 		missingFields = append(missingFields, "Location identifier")
 	}
-	if config.FirebaseCollection == "" {
+	if config.FirestoreCollection == "" {
 		missingFields = append(missingFields, "Firebase collection")
 	}
 	if config.WebhookEnabled && config.WebhookUrl == nil {
