@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"encoding/json"
@@ -6,18 +6,20 @@ import (
 	"os"
 )
 
-type Config struct {
+type BackuperConfig struct {
 	HomeAssistantPath  string
 	ServiceAccountPath string
+	GcloudProject      string
 	BucketName         string
 	LocationIdentifier string
+	FirebaseCollection string
 	WebhookEnabled     bool
 	WebhookUrl         *string
 }
 
 const configFileName = "config.json"
 
-func LoadConfig() (*Config, error) {
+func LoadConfig() (*BackuperConfig, error) {
 	if _, err := os.Stat(configFileName); os.IsNotExist(err) {
 		return nil, fmt.Errorf("config file %s not found", configFileName)
 	}
@@ -29,7 +31,7 @@ func LoadConfig() (*Config, error) {
 	defer configFile.Close()
 
 	decoder := json.NewDecoder(configFile)
-	config := &Config{}
+	config := &BackuperConfig{}
 	err = decoder.Decode(config)
 	if err != nil {
 		return nil, err
@@ -40,11 +42,11 @@ func LoadConfig() (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("Config loaded")
+	fmt.Println("BackuperConfig loaded")
 	return config, nil
 }
 
-func validateConfig(config *Config) error {
+func validateConfig(config *BackuperConfig) error {
 	var missingFields []string
 	if config.HomeAssistantPath == "" {
 		missingFields = append(missingFields, "Home Assistant path")
@@ -52,11 +54,17 @@ func validateConfig(config *Config) error {
 	if config.ServiceAccountPath == "" {
 		missingFields = append(missingFields, "Service account path")
 	}
+	if config.GcloudProject == "" {
+		missingFields = append(missingFields, "Gcloud project")
+	}
 	if config.BucketName == "" {
 		missingFields = append(missingFields, "Bucket name")
 	}
 	if config.LocationIdentifier == "" {
 		missingFields = append(missingFields, "Location identifier")
+	}
+	if config.FirebaseCollection == "" {
+		missingFields = append(missingFields, "Firebase collection")
 	}
 	if config.WebhookEnabled && config.WebhookUrl == nil {
 		missingFields = append(missingFields, "Webhook URL")

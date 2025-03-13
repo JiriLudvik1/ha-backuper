@@ -1,18 +1,23 @@
 package main
 
-import "time"
+import (
+	"ha-backuper/config"
+	"time"
+)
 
 const tempFolder = "/temp"
 
 func main() {
-	config, err := LoadConfig()
+	config, err := config.LoadConfig()
 	if err != nil {
 		panic(err)
 	}
 
 	now := time.Now()
 	archiveName := now.Format("2006-01-02T15-04-05") + ".zip"
-	err = CompressFolder(config.HomeAssistantPath, tempFolder+archiveName)
+	backupPath := tempFolder + archiveName
+
+	err = CompressFolder(config.HomeAssistantPath, backupPath)
 	if err != nil {
 		panic(err)
 	}
