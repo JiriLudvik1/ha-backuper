@@ -7,14 +7,14 @@ import (
 )
 
 type BackuperConfig struct {
-	HomeAssistantPath   string
-	ServiceAccountPath  string
-	GcloudProject       string
-	BucketName          string
-	LocationIdentifier  string
-	FirestoreCollection string
-	WebhookEnabled      bool
-	WebhookUrl          *string
+	HomeAssistantPath   string  `json:"homeAssistantPath"`
+	ServiceAccountPath  string  `json:"serviceAccountPath"`
+	GcloudProject       string  `json:"gcloudProject"`
+	BucketName          string  `json:"bucketName"`
+	LocationIdentifier  string  `json:"locationIdentifier"`
+	FirestoreCollection string  `json:"firestoreCollection"`
+	WebhookEnabled      bool    `json:"webhookEnabled"`
+	WebhookUrl          *string `json:"webhookUrl,omitempty"`
 }
 
 const configFileName = "config.json"

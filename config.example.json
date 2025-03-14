@@ -1,0 +1,10 @@
+{
+  "homeAssistantPath": "/path/to/homeassistant",
+  "serviceAccountPath": "/path/to/service_account.json",
+  "gcloudProject": "my-gcloud-project",
+  "bucketName": "my-backup-bucket",
+  "locationIdentifier": "my-location-id",
+  "firestoreCollection": "my-collection",
+  "webhookEnabled": true,
+  "webhookUrl": "https://example.com/webhook"
+}
