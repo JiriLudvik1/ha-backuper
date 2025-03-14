@@ -3,6 +3,7 @@ package main
 import (
 	"archive/zip"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 )
@@ -17,7 +18,12 @@ func CompressFolder(folderPath, destinationZipPath string) error {
 	zipWriter := zip.NewWriter(zipFile)
 	defer zipWriter.Close()
 
-	err = filepath.Walk(folderPath, func(filePath string, info os.FileInfo, err error) error {
+	err = filepath.WalkDir(folderPath, func(filePath string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		info, err := d.Info()
 		if err != nil {
 			return err
 		}

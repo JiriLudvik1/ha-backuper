@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-const tempFolder = "temp"
+const tempFolderName = "temp"
 
 func main() {
 	ctx := context.Background()
@@ -29,20 +29,23 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	fmt.Printf("Backup compressed at %s\n", backupPath)
 
 	worker := jobs.NewJobWorker(ctx, configuration)
 	result, err := worker.Backup(backupPath)
 	if err != nil {
 		panic(err)
 	}
+	fmt.Printf("Backup created cloud storage at %s\n", result.StoragePath)
+
 	err = worker.FirestoreService.BackupCreatedInsert(result)
 	if err != nil {
 		panic(err)
 	}
+	fmt.Println("Backup created in firestore")
 }
 
 func createBackupPath(location string) (string, error) {
-	const tempFolderName = "temp"
 	formattedNow := time.Now().Format("2006-01-02T15-04-05")
 	filename := formattedNow + "-" + location + ".zip"
 	currentDir, err := os.Getwd()
