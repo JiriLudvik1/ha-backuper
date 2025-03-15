@@ -6,7 +6,26 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 )
+
+// A constant list of paths to ignore during compression
+var ignoredPaths = []string{
+	"auth/",
+	"deps/",
+	"home-assistant_v2.db",
+	"log/",
+	"tts/",
+}
+
+func shouldIgnore(filePath string) bool {
+	for _, ignored := range ignoredPaths {
+		if strings.HasPrefix(filepath.ToSlash(filePath), ignored) {
+			return true
+		}
+	}
+	return false
+}
 
 func CompressFolder(folderPath, destinationZipPath string) error {
 	zipFile, err := os.Create(destinationZipPath)
@@ -23,15 +42,24 @@ func CompressFolder(folderPath, destinationZipPath string) error {
 			return err
 		}
 
+		relativePath := filepath.ToSlash(filepath.Join(".", filePath[len(folderPath):]))
+
+		if shouldIgnore(relativePath) {
+			if d.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+
 		info, err := d.Info()
 		if err != nil {
 			return err
 		}
 
-		relativePath := filepath.ToSlash(filepath.Join(".", filePath[len(folderPath):]))
 		if info.IsDir() {
 			relativePath += "/"
 		}
+
 		header, err := zip.FileInfoHeader(info)
 		if err != nil {
 			return err
