@@ -3,9 +3,11 @@ package persistence
 import (
 	"cloud.google.com/go/firestore"
 	"context"
+	"fmt"
 	"google.golang.org/api/option"
 	"ha-backuper/config"
 	"log"
+	"time"
 )
 
 type FirestoreService struct {
@@ -37,6 +39,46 @@ func (s *FirestoreService) BackupCreatedInsert(result *BackupEntity) error {
 	}
 
 	log.Printf("BackupEntity created: %v", result)
+	return nil
+}
+
+func (s *FirestoreService) GetDeletableBackups() (map[string]*BackupEntity, error) {
+	oneWeekAgo := time.Now().AddDate(0, 0, -7)
+	query := s.client.Collection(s.config.FirestoreCollection).
+		Where("location", "==", s.config.LocationIdentifier).
+		Where("isDeleted", "==", false).
+		Where("uploadedAt", "<=", oneWeekAgo)
+
+	docs, err := query.Documents(s.ctx).GetAll()
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute Firestore query: %w", err)
+	}
+
+	result := make(map[string]*BackupEntity)
+
+	for _, doc := range docs {
+		var backupEntity BackupEntity
+		if err := doc.DataTo(&backupEntity); err != nil {
+			return nil, fmt.Errorf("failed to parse document data: %w", err)
+		}
+
+		result[doc.Ref.ID] = &backupEntity
+	}
+
+	return result, nil
+}
+
+func (s *FirestoreService) SetBackupsAsDeleted(backupIds []string) error {
+	for _, backupId := range backupIds {
+		docRef := s.client.Collection(s.config.FirestoreCollection).Doc(backupId)
+		_, err := docRef.Update(s.ctx, []firestore.Update{
+			{Path: "isDeleted", Value: true},
+		})
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

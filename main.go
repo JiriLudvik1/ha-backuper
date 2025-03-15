@@ -43,6 +43,20 @@ func main() {
 		panic(err)
 	}
 	fmt.Println("Backup created in firestore")
+
+	err = os.Remove(backupPath)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("Backup deleted at %s\n", backupPath)
+
+	cleanupResult, err := worker.Cleanup()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("Cleanup result: %v\n", cleanupResult)
+
+	fmt.Println("Done")
 }
 
 func createBackupPath(location string) (string, error) {
