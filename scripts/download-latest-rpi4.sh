@@ -1,1 +1,1 @@
-wget -O ha-backuper-rpi4 https://github.com/JiriLudvik1/ha-backuper-rpi4/releases/latest/download/ha-backuper-rpi4
+wget -O ha-backuper-rpi4 https://github.com/JiriLudvik1/ha-backuper/releases/latest/download/ha-backuper-rpi4
