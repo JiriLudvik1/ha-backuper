@@ -1,0 +1,69 @@
+name: Build and Release for Raspberry Pi
+
+on:
+  push:
+    tags:
+      - 'v*' # Trigger workflow on a tagged commit (e.g., "v1.0.0")
+  workflow_dispatch: # Allows manual triggering via GitHub UI
+
+jobs:
+  build:
+    name: Build ha-backuper Versions
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        platform:
+          - { arch: arm, arm_version: 7, output_name: ha-backuper-rpi4 }
+          - { arch: arm64, arm_version: "", output_name: ha-backuper-rpi5 }
+
+    steps:
+      # Step 1: Checkout the code
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # Step 2: Set up Go environment
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: 1.23 # Specify your Go version
+
+      # Step 3: Build for the Raspberry Pi platform
+      - name: Build for Raspberry Pi
+        run: |
+          GOOS=linux GOARCH=${{ matrix.platform.arch }} GOARM=${{ matrix.platform.arm_version }} go build -o ${{ matrix.platform.output_name }}
+
+      # Step 4: Upload binaries as artifacts
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.platform.output_name }}
+          path: ./${{ matrix.platform.output_name }}
+
+  release:
+    name: Create GitHub Release and Upload Binaries
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Download build artifacts
+      - name: Download Build Artifacts (RPi 4)
+        uses: actions/download-artifact@v3
+        with:
+          name: ha-backuper-rpi4
+
+      - name: Download Build Artifacts (RPi 5)
+        uses: actions/download-artifact@v3
+        with:
+          name: ha-backuper-rpi5
+
+      # Step 2: Create a GitHub Release
+      - name: Create GitHub Release
+        id: release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            ha-backuper-rpi4
+            ha-backuper-rpi5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
