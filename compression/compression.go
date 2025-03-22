@@ -1,4 +1,4 @@
-package main
+package compression
 
 import (
 	"archive/zip"
@@ -96,4 +96,74 @@ func CompressFolder(folderPath, destinationZipPath string) error {
 	}
 
 	return nil
+}
+
+func DecompressFolder(archivePath, destinationFolderPath string) error {
+	if _, err := os.Stat(destinationFolderPath); os.IsNotExist(err) {
+		if err := os.MkdirAll(destinationFolderPath, os.ModePerm); err != nil {
+			return err
+		}
+	}
+
+	zipFile, err := os.Open(archivePath)
+	if err != nil {
+		return err
+	}
+	defer zipFile.Close()
+
+	zipReader, err := zip.NewReader(zipFile, getFileSize(archivePath))
+	if err != nil {
+		return err
+	}
+
+	for _, file := range zipReader.File {
+		filePath := filepath.Join(destinationFolderPath, file.Name)
+
+		if file.FileInfo().IsDir() {
+			if err := os.MkdirAll(filePath, os.ModePerm); err != nil {
+				return err
+			}
+			continue
+		}
+
+		if err := os.MkdirAll(filepath.Dir(filePath), os.ModePerm); err != nil {
+			return err
+		}
+
+		err = extractAndWriteFile(file, filePath)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func extractAndWriteFile(zf *zip.File, destinationPath string) error {
+	from, err := zf.Open()
+	if err != nil {
+		return err
+	}
+	defer from.Close()
+
+	to, err := os.Create(destinationPath)
+	if err != nil {
+		return err
+	}
+	defer to.Close()
+
+	_, err = io.Copy(to, from)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func getFileSize(path string) int64 {
+	info, err := os.Stat(path)
+	if err != nil {
+		return 0
+	}
+	return info.Size()
 }

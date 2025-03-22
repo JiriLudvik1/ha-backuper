@@ -32,7 +32,7 @@ func NewFirestoreService(ctx context.Context, config *config.BackuperConfig) (*F
 	return service, nil
 }
 
-func (s *FirestoreService) BackupCreatedInsert(result *BackupEntity) error {
+func (s *FirestoreService) InsertBackupEntity(result *BackupEntity) error {
 	err := s.writeDocument(s.config.FirestoreCollection, nil, result)
 	if err != nil {
 		return err
@@ -80,6 +80,28 @@ func (s *FirestoreService) SetBackupsAsDeleted(backupIds []string) error {
 	}
 
 	return nil
+}
+
+func (s *FirestoreService) GetLatestBackup() (*BackupEntity, error) {
+	query := s.client.Collection(s.config.FirestoreCollection).
+		Where("location", "==", s.config.LocationIdentifier).
+		OrderBy("uploadedAt", firestore.Desc).
+		Limit(1)
+	docs, err := query.Documents(s.ctx).GetAll()
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute Firestore query: %w", err)
+	}
+
+	if len(docs) == 0 {
+		return nil, fmt.Errorf("no backups found")
+	}
+
+	var backupEntity BackupEntity
+	if err := docs[0].DataTo(&backupEntity); err != nil {
+		return nil, fmt.Errorf("failed to parse document data: %w", err)
+	}
+
+	return &backupEntity, nil
 }
 
 func (s *FirestoreService) writeDocument(collectionName string, documentId *string, data interface{}) error {

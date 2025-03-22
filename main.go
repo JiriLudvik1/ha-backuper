@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"ha-backuper/compression"
 	"ha-backuper/config"
 	"ha-backuper/jobs"
 	"os"
@@ -10,35 +11,55 @@ import (
 	"time"
 )
 
-const tempFolderName = "temp"
+const TempFolderName = "temp"
 
 func main() {
 	ctx := context.Background()
-
 	configuration, err := config.LoadConfig()
 	if err != nil {
 		panic(err)
 	}
 
-	backupPath, err := createBackupPath(configuration.LocationIdentifier)
+	worker := jobs.NewJobWorker(ctx, configuration)
+
+	args := os.Args
+	if len(args) == 1 {
+		fmt.Println("No arguments provided - running backup.")
+		performBackup(worker)
+		return
+	}
+
+	if len(args) == 2 && args[1] == "restore-latest" {
+		fmt.Println("Restoring latest backup.")
+		err = worker.RestoreLatestBackup()
+		if err != nil {
+			panic(err)
+		}
+		return
+	}
+
+	fmt.Println("Unknown arguments provided - exiting.")
+}
+
+func performBackup(worker *jobs.JobWorker) {
+	backupPath, err := createBackupPath(worker.Config.LocationIdentifier)
 	if err != nil {
 		panic(err)
 	}
 
-	err = CompressFolder(configuration.HomeAssistantPath, backupPath)
+	err = compression.CompressFolder(worker.Config.HomeAssistantPath, backupPath)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Printf("Backup compressed at %s\n", backupPath)
 
-	worker := jobs.NewJobWorker(ctx, configuration)
 	result, err := worker.Backup(backupPath)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Printf("Backup created cloud storage at %s\n", result.StoragePath)
 
-	err = worker.FirestoreService.BackupCreatedInsert(result)
+	err = worker.FirestoreService.InsertBackupEntity(result)
 	if err != nil {
 		panic(err)
 	}
@@ -56,7 +77,7 @@ func main() {
 	}
 	fmt.Printf("Cleanup result: %v\n", cleanupResult)
 
-	fmt.Println("Done")
+	fmt.Println("Backup done")
 }
 
 func createBackupPath(location string) (string, error) {
@@ -67,7 +88,7 @@ func createBackupPath(location string) (string, error) {
 		return "", fmt.Errorf("failed to get current working directory: %w", err)
 	}
 
-	tempFolderPath := path.Join(currentDir, tempFolderName)
+	tempFolderPath := path.Join(currentDir, TempFolderName)
 	err = os.MkdirAll(tempFolderPath, os.ModePerm)
 	if err != nil {
 		return "", fmt.Errorf("failed to create temp folder: %w", err)
