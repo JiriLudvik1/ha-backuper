@@ -34,7 +34,7 @@ func (j *JobWorker) RestoreLatestBackup() error {
 
 	fmt.Println("Backup successfully obtained")
 
-	err = renameFolderToOldSuffix(j.Config.HomeAssistantPath)
+	err = backupFolderToOldSuffix(j.Config.HomeAssistantPath)
 	if err != nil {
 		return fmt.Errorf("failed to rename the backup folder: %w", err)
 	}
@@ -105,15 +105,52 @@ func createRestorePath(latestBackup *persistence.BackupEntity) (string, error) {
 	return filepath.Join(restoreFolderPath, fileName), nil
 }
 
-func renameFolderToOldSuffix(folderPath string) error {
+func backupFolderToOldSuffix(folderPath string) error {
 	timestamp := time.Now().Format("2006_01_02__15_04_05")
-	newFolderName := folderPath + "_old_" + timestamp
-	newFolderPath := newFolderName
+	backupFolderPath := folderPath + "_old_" + timestamp
 
-	err := os.Rename(folderPath, newFolderPath)
-	if err != nil {
-		return err
+	if err := os.MkdirAll(backupFolderPath, os.ModePerm); err != nil {
+		return fmt.Errorf("failed to create '_old' folder: %w", err)
 	}
-	return nil
 
+	err := filepath.Walk(folderPath, func(filePath string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		relativePath, err := filepath.Rel(folderPath, filePath)
+		if err != nil {
+			return err
+		}
+
+		if relativePath == "." {
+			return nil
+		}
+
+		if compression.ShouldIgnore(filepath.ToSlash(relativePath)) {
+			fmt.Printf("Skipping ignored path: %s\n", filePath)
+			return nil
+		}
+
+		destinationPath := filepath.Join(backupFolderPath, relativePath)
+
+		if info.IsDir() {
+			if err := os.MkdirAll(destinationPath, os.ModePerm); err != nil {
+				return fmt.Errorf("failed to create directory in '_old' folder: %w", err)
+			}
+			return nil
+		}
+
+		err = os.Rename(filePath, destinationPath)
+		if err != nil {
+			return fmt.Errorf("failed to move file to '_old' folder: %w", err)
+		}
+		return nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("error walking through folder: %w", err)
+	}
+
+	return nil
 }

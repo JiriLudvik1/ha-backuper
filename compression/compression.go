@@ -2,6 +2,7 @@ package compression
 
 import (
 	"archive/zip"
+	"fmt"
 	"io"
 	"io/fs"
 	"os"
@@ -18,7 +19,7 @@ var ignoredPaths = []string{
 	"tts/",
 }
 
-func shouldIgnore(filePath string) bool {
+func ShouldIgnore(filePath string) bool {
 	for _, ignored := range ignoredPaths {
 		if strings.HasPrefix(filepath.ToSlash(filePath), ignored) {
 			return true
@@ -44,7 +45,7 @@ func CompressFolder(folderPath, destinationZipPath string) error {
 
 		relativePath := filepath.ToSlash(filepath.Join(".", filePath[len(folderPath):]))
 
-		if shouldIgnore(relativePath) {
+		if ShouldIgnore(relativePath) {
 			if d.IsDir() {
 				return filepath.SkipDir
 			}
@@ -117,6 +118,12 @@ func DecompressFolder(archivePath, destinationFolderPath string) error {
 	}
 
 	for _, file := range zipReader.File {
+		relativeFilePath := filepath.ToSlash(file.Name)
+		if ShouldIgnore(relativeFilePath) {
+			fmt.Printf("Skipping ignored file or folder: %s\n", relativeFilePath)
+			continue
+		}
+
 		filePath := filepath.Join(destinationFolderPath, file.Name)
 
 		if file.FileInfo().IsDir() {
