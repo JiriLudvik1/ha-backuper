@@ -104,6 +104,29 @@ func (s *FirestoreService) GetLatestBackup() (*BackupEntity, error) {
 	return &backupEntity, nil
 }
 
+func (s *FirestoreService) DeleteOldBackupRecords() ([]string, error) {
+	query := s.client.Collection(s.config.FirestoreCollection).
+		Where("location", "==", s.config.LocationIdentifier).
+		Where("isDeleted", "==", true).
+		Where("uploadedAt", "<=", time.Now().AddDate(0, 0, -14))
+
+	docs, err := query.Documents(s.ctx).GetAll()
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute Firestore query: %w", err)
+	}
+
+	var deletedIds []string
+	for _, doc := range docs {
+		_, err := doc.Ref.Delete(s.ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to delete document: %w", err)
+		}
+		deletedIds = append(deletedIds, doc.Ref.ID)
+	}
+
+	return deletedIds, nil
+}
+
 func (s *FirestoreService) writeDocument(collectionName string, documentId *string, data interface{}) error {
 	var docRef *firestore.DocumentRef
 

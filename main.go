@@ -71,13 +71,19 @@ func performBackup(worker *jobs.JobWorker) {
 	}
 	fmt.Printf("Backup deleted at %s\n", backupPath)
 
-	cleanupResult, err := worker.Cleanup()
+	cleanupResult, err := worker.CleanupStorageBackups()
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("Cleanup result: %v\n", cleanupResult)
+	fmt.Printf("CleanupStorageBackups result: %v\n", cleanupResult)
 
-	fmt.Println("Backup done")
+	deletedDocumentIds, err := worker.FirestoreService.DeleteOldBackupRecords()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("Deleted old backup records: %v\n", deletedDocumentIds)
+
+	fmt.Println("Backup process done")
 }
 
 func createBackupPath(location string) (string, error) {

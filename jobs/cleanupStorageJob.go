@@ -7,12 +7,7 @@ import (
 	"sync"
 )
 
-type CleanupResult struct {
-	SuccessfulDeletedIds []string
-	FailedDeletedIds     []string
-}
-
-func (j *JobWorker) Cleanup() (CleanupResult, error) {
+func (j *JobWorker) CleanupStorageBackups() (CleanupResult, error) {
 	result := CleanupResult{}
 	backupsToDelete, err := j.FirestoreService.GetDeletableBackups()
 	if err != nil {

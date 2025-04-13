@@ -16,6 +16,11 @@ type JobWorker struct {
 	Config           *config.BackuperConfig
 }
 
+type CleanupResult struct {
+	SuccessfulDeletedIds []string
+	FailedDeletedIds     []string
+}
+
 func NewJobWorker(ctx context.Context, config *config.BackuperConfig) *JobWorker {
 	firestoreService, err := persistence.NewFirestoreService(ctx, config)
 	if err != nil {
